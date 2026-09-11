@@ -422,7 +422,7 @@ async function loadRoomSupabase(code){
   const { data, error } = await supabaseClient
     .from('rooms')
     .select('data')
-    .eq('code', code)
+    .eq('room_code', code)
     .maybeSingle();
   if(error) throw error;
   return data ? data.data : null;
@@ -430,7 +430,7 @@ async function loadRoomSupabase(code){
 async function saveRoomSupabase(code, data){
   const { error } = await supabaseClient
     .from('rooms')
-    .upsert({ code, data, updated_at: new Date().toISOString() });
+    .upsert({ room_code: code, data, updated_at: new Date().toISOString() }, { onConflict: 'room_code' });
   if(error) throw error;
 }
 
