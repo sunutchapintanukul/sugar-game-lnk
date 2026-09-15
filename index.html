@@ -446,22 +446,23 @@ async function loadRoomRemote(code){
     return null;
   }catch(e){ console.error('loadRoomRemote error', e); return null; }
 }
-async function saveRoomRemote(code, data){
+async function saveRoomRemoteCAS(code, expectedRev, newData){
   try{
     if(hasSupabase()){
-      await saveRoomSupabase(code, data);
-      return true;
+      const { data, error } = await supabaseClient
+        .from('rooms')
+        .update({ data: newData, updated_at: new Date().toISOString() })
+        .eq('room_code', code)
+        .eq('data->>rev', String(expectedRev))
+        .select();
+      if(error) throw error;
+      return !!(data && data.length);
     }
-    if(hasOnlineStorage()){
-      await window.storage.set(ROOM_PREFIX + code, JSON.stringify(data), true);
-      return true;
-    }
-    if(hasLocalFallback()){
-      window.localStorage.setItem(ROOM_PREFIX + code, JSON.stringify(data));
-      return true;
-    }
+    return await saveRoomRemote(code, newData);
+  }catch(e){
+    console.error('saveRoomRemoteCAS error', e);
     return false;
-  }catch(e){ console.error('saveRoomRemote error', e); return false; }
+  }
 }
 
 // Pull the freshest copy of the room before mutating it, so an action taken
@@ -677,19 +678,30 @@ function startPhase2Round(){
 // Every player picks their own card independently from their own device;
 // once everyone has picked, whichever device submits last reveals the round for all.
 async function submitSelection(cardNum){
-  await refreshFromRemote();
-  const p = S.players.find(pl=>pl.id===myPlayerId);
-  if(!p) return;
-  if(S.p2round.selections[p.id] !== undefined) return; // already submitted
-  if(!p.foodHand.some(c=>c.n===cardNum)) return;
-  S.p2round.selections[p.id] = cardNum;
-  p.foodHand = p.foodHand.filter(c=>c.n !== cardNum);
-  logMsg(`${p.name} เลือกการ์ดคว่ำไว้แล้ว`);
-  if(Object.keys(S.p2round.selections).length >= S.numPlayers){
-    revealPhase2();
-  } else {
-    commit();
+  const myId = myPlayerId;
+  for(let attempt=0; attempt<8; attempt++){
+    const remote = await loadRoomRemote(roomCode);
+    if(!remote) return;
+    S = remote;
+    const p = S.players.find(pl=>pl.id===myId);
+    if(!p || !S.p2round){ render(); return; }
+    if(S.p2round.selections[p.id] !== undefined){ render(); return; }
+    if(!p.foodHand.some(c=>c.n===cardNum)){ render(); return; }
+
+    const expectedRev = S.rev || 0;
+    S.p2round.selections[p.id] = cardNum;
+    p.foodHand = p.foodHand.filter(c=>c.n !== cardNum);
+    logMsg(`${p.name} เลือกการ์ดคว่ำไว้แล้ว`);
+    if(Object.keys(S.p2round.selections).length >= S.numPlayers){
+      revealPhase2();
+    }
+    S.rev = expectedRev + 1;
+
+    const ok = await saveRoomRemoteCAS(roomCode, expectedRev, S);
+    if(ok){ render(); return; }
   }
+  alert('การเชื่อมต่อขัดข้อง กรุณากดเลือกการ์ดใหม่อีกครั้ง');
+  render();
 }
 
 function revealPhase2(){
@@ -708,7 +720,7 @@ function revealPhase2(){
   S.p2round.revealEntries = entries;
   S.p2round.revealTable = table;
   S.screen = 'phase2-reveal';
-  commit();
+
 }
 
 function finalizeGame(){
