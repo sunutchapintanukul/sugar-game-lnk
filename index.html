@@ -818,9 +818,9 @@ function renderHome(){
     <div class="card-panel center">
       <h2 style="margin:4px 0 14px;">🎲 เล่นออนไลน์กับเพื่อน</h2>
       <p class="small">สร้างห้องแล้วส่งรหัสห้องให้เพื่อน หรือกรอกรหัสห้องเพื่อนเข้าร่วม — แต่ละคนเล่นจากมือถือ/คอมของตัวเองได้เลย</p>
-      <div class="btn-row" style="justify-content:center;flex-direction:column;gap:10px;">
-        <button class="btn" id="createBtn" style="width:100%;">🆕 สร้างห้องใหม่</button>
-        <button class="btn coral" id="joinBtn" style="width:100%;">🔑 เข้าร่วมห้องด้วยรหัส</button>
+      <div class="btn-row" style="justify-content:center;flex-direction:column;align-items:center;gap:10px;">
+        <button class="btn" id="createBtn" style="width:100%;max-width:280px;">🆕 สร้างห้องใหม่</button>
+        <button class="btn coral" id="joinBtn" style="width:100%;max-width:280px;">🔑 เข้าร่วมห้องด้วยรหัส</button>
       </div>
       ${hasOnlineStorage() ? '' : '<div class="rule-note">⚠️ ตอนนี้ไม่ได้เปิดผ่าน Claude จึงยังเชื่อมข้ามอุปกรณ์ไม่ได้ — ห้องจะใช้ได้เฉพาะแท็บ/เบราว์เซอร์นี้เท่านั้น (เหมาะสำหรับเล่นทดสอบ)</div>'}
     </div>
