@@ -446,6 +446,23 @@ async function loadRoomRemote(code){
     return null;
   }catch(e){ console.error('loadRoomRemote error', e); return null; }
 }
+async function saveRoomRemote(code, data){
+  try{
+    if(hasSupabase()){
+      await saveRoomSupabase(code, data);
+      return true;
+    }
+    if(hasOnlineStorage()){
+      await window.storage.set(ROOM_PREFIX + code, JSON.stringify(data), true);
+      return true;
+    }
+    if(hasLocalFallback()){
+      window.localStorage.setItem(ROOM_PREFIX + code, JSON.stringify(data));
+      return true;
+    }
+    return false;
+  }catch(e){ console.error('saveRoomRemote error', e); return false; }
+}
 async function saveRoomRemoteCAS(code, expectedRev, newData){
   try{
     if(hasSupabase()){
